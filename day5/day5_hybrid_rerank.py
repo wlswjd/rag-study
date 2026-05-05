@@ -28,7 +28,7 @@ documents = [
 # ===========================
 # 2. 모델 로드
 # ===========================
-print("Cross-encoder 모델 로드 중...")
+print("모델 로딩 중...")
 embedder = SentenceTransformer("jhgan/ko-sroberta-multitask")
 reranker = CrossEncoder("Dongjin-kr/ko-reranker")
 print("로딩 완료\n")
@@ -40,30 +40,30 @@ def simple_tokenize(text):
     text = re.sub(r'[^\w\s]', ' ', text)
     return text.split()
 
-#bm25
-tokenized_docs = [simple_tokenize(doc) for doc in documents]
-bm25 = BM250kapi(tokenized_docs, k1=1.5, b=0.75)
+# BM25
+tokenized_docs = [simple_tokenize(d) for d in documents]
+bm25 = BM25Okapi(tokenized_docs, k1=1.5, b=0.75)
 
-#dense
+# Dense (ChromaDB)
 client = chromadb.Client()
 collection = client.create_collection(
     name="day5_rerank",
-    metadata = {"hnsw:space": "cosine"}
+    metadata={"hnsw:space": "cosine"}
 )
 embeddings = embedder.encode(documents).tolist()
 collection.add(
-    embeddings = embeddings,
+    embeddings=embeddings,
     documents=documents,
     ids=[f"doc_{i}" for i in range(len(documents))]
 )
 
 # ===========================
-# 4. 검색 함수
+# 4. 검색 함수들
 # ===========================
 def search_dense(query, top_n=10):
     q_emb = embedder.encode(query).tolist()
     results = collection.query(query_embeddings=[q_emb], n_results=top_n)
-    return [(int(doc_id.split('_')[1]), rank + 1)
+    return [(int(doc_id.split('_')[1]), rank + 1) 
             for rank, doc_id in enumerate(results['ids'][0])]
 
 def search_bm25(query, top_n=10):
@@ -71,7 +71,7 @@ def search_bm25(query, top_n=10):
     scores = bm25.get_scores(tokens)
     scored = [(i, s) for i, s in enumerate(scores) if s > 0]
     scored.sort(key=lambda x: x[1], reverse=True)
-    return [(idx, rank+1) for rank, (idx, _) in enumerate(scored[:top_n])]
+    return [(idx, rank + 1) for rank, (idx, _) in enumerate(scored[:top_n])]
 
 def hybrid_search(query, top_n=10, k_rrf=60):
     """Day 4와 동일 — RRF로 Dense + BM25 결합"""
