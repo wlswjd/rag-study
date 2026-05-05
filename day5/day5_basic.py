@@ -1,12 +1,12 @@
-from sentence_transformers import SentenceTransformer
+from sentence_transformers import CrossEncoder
 import time
 
-print("Cross-encoder 모델 로드 중...")
+print("Cross-encoder 모델 로딩 중... (처음이면 다운로드 시간 소요)")
 start = time.time()
-reranker = SentenceTransformer("Dongjin-kr/ko-reranker")
-print(f"로딩완료: {time.time() - start:.1f}")
+reranker = CrossEncoder("Dongjin-kr/ko-reranker")
+print(f"로딩 완료: {time.time() - start:.1f}초\n")
 
-#같은 질문에 대한 다양한 후보 문서들
+# 같은 질문에 대해 다양한 후보 문서들
 query = "강아지 사료 추천"
 
 candidates = [
@@ -19,21 +19,21 @@ candidates = [
     "강아지 사료 보관 방법과 유통기한",          # 관련 있음
 ]
 
-#cross-encoder 입력 형식 : 질문+후보 리스트
+# Cross-encoder 입력 형식: (질문, 문서) 쌍의 리스트
 pairs = [(query, doc) for doc in candidates]
 
-#점수 계산
+# 점수 계산
 print(f"[질문] {query}\n")
-print("점수 게산중 ...")
+print("점수 계산 중...")
 start = time.time()
 scores = reranker.predict(pairs)
 elapsed = (time.time() - start) * 1000
-print(f"소요시간: {elapsed:.1f}ms ({len(pairs)}개 후보)\n")
+print(f"걸린 시간: {elapsed:.1f}ms ({len(pairs)}개 후보)\n")
 
-#점수순으로 정렬
-ranked = sorted(zip(candidates, scores), key=lambda x: x[1], reverse=true)
+# 점수순 정렬
+ranked = sorted(zip(candidates, scores), key=lambda x: x[1], reverse=True)
 
-print("="*50)
+print("=" * 60)
 print(f"{'순위':<4} {'점수':>10}  문서")
 print("=" * 60)
 for rank, (doc, score) in enumerate(ranked, 1):
